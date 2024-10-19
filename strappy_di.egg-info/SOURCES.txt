@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+strappy/__init__.py
+strappy/container.py
+strappy/errors.py
+strappy/protocols.py
+strappy/provider.py
+strappy/strategies.py
+strappy/type_utils.py
+strappy_di.egg-info/PKG-INFO
+strappy_di.egg-info/SOURCES.txt
+strappy_di.egg-info/dependency_links.txt
+strappy_di.egg-info/top_level.txt

@@ -1,0 +1,28 @@
+Metadata-Version: 2.1
+Name: strappy-di
+Version: 0.1.0
+Summary: Light, flexible, and pythonic dependency injection framework
+Keywords: dependency,injection,bootstrap
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+
+
+# To Do
+[ ] Handle recursive references
+[ ] Rewrite extension to use reference to parent container
+[ ] Expand type tests
+[ ] Add examples to docs
+[ ] Push to github and set up github actions pipeline
+[ ] Build and push to Test PyPI (yay!)
+
+# Examples
+
+You can use decorators to inject using local scope
+```
+@strappy.inject
+class Service:
+    ...
+```
