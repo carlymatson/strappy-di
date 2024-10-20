@@ -1,6 +1,5 @@
 import pytest
 from pydantic import BaseModel
-
 from strappy import Container
 from strappy.provider import Provider
 
@@ -8,7 +7,7 @@ from strappy.provider import Provider
 def test_can_resolve_with_kwargs():
     container = Container()
 
-    @container.inject
+    @container.register
     class Service:
         def __init__(self, value: int) -> None:
             self.value = value
@@ -22,7 +21,7 @@ def test_can_resolve_with_kwargs():
 def test_resolution_kwargs_take_precedence_over_registration():
     container = Container()
 
-    @container.inject(kwargs={"a": 2, "b": "bobo"})
+    @container.register(kwargs={"a": 2, "b": "bobo"})
     class Service:
         def __init__(self, a: int, b: str, c: float) -> None:
             self.a = a
@@ -44,7 +43,7 @@ def test_resolution_kwargs_take_precedence_over_registration():
 def test_can_use_default_for_unregistered_subdependencies():
     container = Container()
 
-    @container.inject
+    @container.register
     class Service:
         def __init__(self, value: int = 100) -> None:
             self.value = value
@@ -58,7 +57,7 @@ def test_can_use_default_for_unregistered_subdependencies():
 def test_default_fields_are_not_passed_explicitly():
     container = Container()
 
-    @container.inject
+    @container.register
     class Person(BaseModel):
         name: str
         age: int = 0

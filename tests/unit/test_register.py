@@ -2,7 +2,6 @@ from typing import Protocol
 from unittest.mock import Mock
 
 import pytest
-
 from strappy import Container, Mode, Provider, Scope
 
 
@@ -47,11 +46,11 @@ def test_add_second_provider_with_overwrite_mode():
     assert container.registry == {str: [second_mock_provider]}
 
 
-def test_bare_inject_calls_add_provider():
+def test_bare_register_calls_add_provider():
     container = Container()
     container.add = Mock()
 
-    @container.inject
+    @container.register
     class Service: ...
 
     container.add.assert_called_once()  # type: ignore
@@ -65,14 +64,14 @@ def test_bare_inject_calls_add_provider():
     assert provider.instance is None
 
 
-def test_injecting_with_args_calls_add_provider_with_args():
+def test_registering_with_args_calls_add_provider_with_args():
     container = Container()
     container.add = Mock()
 
     class ServiceLike(Protocol):
         def get_foo(self) -> str: ...
 
-    @container.inject(
+    @container.register(
         provides=ServiceLike,
         kwargs={"a": 1},
         scope=Scope.SINGLETON,

@@ -1,11 +1,11 @@
 """Container for dependency injection."""
 
 import inspect
-from collections.abc import Callable, Hashable
+from collections.abc import Callable, Hashable, Sequence
 from enum import Enum
 from typing import Any, Self, TypeAlias, TypeVar, overload
 
-from strappy import strategies
+from strappy import strategies as st
 from strappy.errors import RegistrationConflictError, ResolutionError
 from strappy.protocols import ContainerLike, FactoryDecorator
 from strappy.provider import Provider, Scope
@@ -28,26 +28,26 @@ class _Empty: ...
 
 _EMPTY = _Empty()
 
+Strategy: TypeAlias = Callable[[inspect.Parameter, ContainerLike], Provider | None]
 
 class Container:
     """Simple dependency injection container."""
 
     def __init__(
         self,
-        custom_resolvers: list[Callable[[inspect.Parameter, ContainerLike], Provider]]
-        | None = None,
+        strategies: Sequence[Strategy] = (
+            st.use_depends_meta_if_present,
+            st.search_registry_for_type,
+            st.search_registry_for_collection_inner_type,
+            st.use_type_as_factory,
+        ),
         parent: Self | None = None,
     ) -> None:
         """Create a new  container for dependency injection."""
-        self.custom_resolvers = custom_resolvers or []
+        self.strategies = strategies or []
         self.parent = parent
 
         self._registry: dict[Hashable, list[Provider]] = {}
-        self._default_resolvers = [
-            strategies.search_annotations_and_default_for_depends,
-            strategies.search_for_subtypes,
-            strategies.search_for_collection_inner_type,
-        ]
 
     def unset(self, key: Hashable) -> None:
         """Clear all registrations for the given type."""
@@ -94,7 +94,7 @@ class Container:
         return {**self._registry}
 
     @overload
-    def inject(
+    def register(
         self,
         factory: type[T],
         *,
@@ -105,7 +105,7 @@ class Container:
     ) -> type[T]: ...
 
     @overload
-    def inject(
+    def register(
         self,
         factory: Callable[..., T],
         *,
@@ -116,7 +116,7 @@ class Container:
     ) -> Callable[..., T]: ...
 
     @overload
-    def inject(
+    def register(
         self,
         factory: None = None,
         *,
@@ -126,9 +126,9 @@ class Container:
         mode: Mode = Mode.RAISE_ON_CONFLICT,
     ) -> FactoryDecorator[T]: ...
 
-    def inject(
+    def register(  # noqa: PLR0913
         self,
-        factory: Callable[..., T] | None = None,
+        factory: Callable[..., T] | type[T] | None = None,
         *,
         provides: Callable[..., T] | None = None,
         kwargs: dict[str, Any] | None = None,
@@ -136,12 +136,12 @@ class Container:
         mode: Mode = Mode.RAISE_ON_CONFLICT,
     ) -> type[T] | Callable[..., T] | FactoryDecorator[T]:
         """Inject a factory into this container."""
-        # Case 1: Decorator without arguments, i.e. @inject
+        # Case 1: Decorator without arguments, i.e. @register
         if factory is not None:
             self.add(Provider(factory=factory))
             return factory
 
-        # Case 2: Decorator with arguments, i.e. @inject(...)
+        # Case 2: Decorator with arguments, i.e. @register(...)
         def decorator(factory_: FactoryT) -> FactoryT:
             self.add(
                 Provider(
@@ -159,13 +159,12 @@ class Container:
     def _resolve_param(
         self,
         param: inspect.Parameter,
-        args: tuple = (),
+        args: tuple = (),  # noqa: ARG002
         kwargs: dict[str, Any] | None = None,
     ) -> Any:  # noqa: ANN401
-        type_resolvers = self.custom_resolvers + self._default_resolvers
         providers = [
             result
-            for strategy in type_resolvers
+            for strategy in self.strategies
             if (result := strategy(param, self)) is not None
         ]
         if providers:
@@ -218,4 +217,4 @@ class Container:
 
     def extend(self) -> Self:
         """Return a new container extending the current context."""
-        return type(self)(custom_resolvers=self.custom_resolvers, parent=self)
+        return type(self)(strategies=self.strategies, parent=self)

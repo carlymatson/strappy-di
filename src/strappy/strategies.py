@@ -2,16 +2,16 @@
 
 import inspect
 from collections.abc import Collection, Hashable
-from typing import Annotated, Protocol, get_args, get_origin
+from typing import Annotated, Any, Protocol, get_args, get_origin
 
 from strappy import type_utils
 from strappy.protocols import ContainerLike
 from strappy.provider import Provider
 
 
-def search_annotations_and_default_for_depends(
+def use_depends_meta_if_present(
     param: inspect.Parameter,
-    registry: dict[Hashable, list[Provider]],  # noqa: ARG001
+    container: ContainerLike,  # noqa: ARG001
 ) -> Provider | None:
     """Get FastAPI dependency resolver."""
     if get_origin(param.annotation) is Annotated:
@@ -51,7 +51,7 @@ def _search_for_subtypes(
     return None
 
 
-def search_for_subtypes(
+def search_registry_for_type(
     param: inspect.Parameter,
     container: ContainerLike,
 ) -> Provider | None:
@@ -62,7 +62,7 @@ def search_for_subtypes(
     return None
 
 
-def search_for_collection_inner_type(
+def search_registry_for_collection_inner_type(
     param: inspect.Parameter,
     container: ContainerLike,
 ) -> Provider | None:
@@ -83,22 +83,24 @@ def search_for_collection_inner_type(
     return Provider(factory=collection_factory, provides=annotation)
 
 
-def _is_concrete_class(hint) -> bool:
-    is_class = inspect.isclass(hint)
-    is_abstract = inspect.isabstract(hint)
-    is_protocol = issubclass(hint, Protocol)
+def _is_concrete_class(hint: Any) -> bool:  # noqa: ANN401
+    if hint == inspect._empty:  # noqa: SLF001
+        return False
+    try:
+        is_class = inspect.isclass(hint)
+        is_abstract = inspect.isabstract(hint)
+        is_protocol = issubclass(hint, Protocol)
+    except TypeError:
+        return False
     return is_class and not (is_abstract or is_protocol)
 
 
-def try_to_use_type_as_factory(
+def use_type_as_factory(
     param: inspect.Parameter,
     container: ContainerLike,  # noqa: ARG001
 ) -> Provider | None:
     """Get a provider which uses the type as a factory if valid."""
     hint = param.annotation
-    is_class = inspect.isclass(hint)
-    is_abstract = inspect.isabstract(hint)
-    is_protocol = issubclass(hint, Protocol)
-    if is_class and not (is_abstract or is_protocol):
+    if _is_concrete_class(hint):
         return Provider(param.annotation)
     return None

@@ -1,10 +1,9 @@
 import pytest
-
 import strappy
 
 
-def test_global_inject_and_resolve():
-    @strappy.base.inject
+def test_global_register_and_resolve():
+    @strappy.base.register
     class Service: ...
 
     service = strappy.base.resolve(Service)
@@ -12,7 +11,7 @@ def test_global_inject_and_resolve():
 
 
 def test_extend_global_keeps_registrations():
-    @strappy.base.inject
+    @strappy.base.register
     class Service: ...
 
     container = strappy.base.extend()
@@ -21,20 +20,17 @@ def test_extend_global_keeps_registrations():
 
 
 def test_clearing_registrations_in_extension_does_not_affect_base():
-    @strappy.base.inject
+    @strappy.base.register
     class Service: ...
 
     container = strappy.base.extend()
     container.clear(Service)
-    with pytest.raises(strappy.ResolutionError):
-        service = container.resolve(Service)
-
-    service = strappy.base.resolve(Service)
-    assert isinstance(service, Service)
+    assert strappy.base.registry[Service]
+    assert not container.registry.get(Service, None)
 
 
 def test_overwriting_registrations_in_extension_does_not_affect_base():
-    @strappy.base.inject
+    @strappy.base.register
     class Service: ...
 
     container = strappy.base.extend()

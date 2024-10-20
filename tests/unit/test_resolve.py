@@ -54,7 +54,7 @@ def test_resolves_subdependency_using_annotated_type_hint():
 def test_resolves_subdependency_annotated_type_hint_falls_back_to_unwrapped():
     container = Container()
 
-    @container.inject
+    @container.register
     class Service:
         def __init__(self, value: Annotated[str, "a"]) -> None:
             self.value = value
@@ -89,10 +89,10 @@ def test_resolve_list_of_registered_subclasses():
 
     class BaseService: ...
 
-    @container.inject(provides=BaseService, mode=Mode.APPEND)
+    @container.register(provides=BaseService, mode=Mode.APPEND)
     class FooService(BaseService): ...
 
-    @container.inject(provides=BaseService, mode=Mode.APPEND)
+    @container.register(provides=BaseService, mode=Mode.APPEND)
     class BarService(BaseService): ...
 
     services = container.resolve(list[BaseService])
@@ -124,7 +124,7 @@ def test_resolve_collection_subdependency():
 
     class Handler: ...
 
-    @container.inject
+    @container.register
     class Service:
         def __init__(self, handlers: list[Handler]) -> None:
             self.handlers = handlers

@@ -4,7 +4,7 @@ from strappy import Container, Scope
 def test_transient_returns_new_result():
     container = Container()
 
-    @container.inject(scope=Scope.TRANSIENT)
+    @container.register(scope=Scope.TRANSIENT)
     class Service: ...
 
     service_1 = container.resolve(Service)
@@ -16,7 +16,7 @@ def test_transient_returns_new_result():
 def test_singleton_returns_same_result():
     container = Container()
 
-    @container.inject(scope=Scope.SINGLETON)
+    @container.register(scope=Scope.SINGLETON)
     class Service: ...
 
     service_1 = container.resolve(Service)

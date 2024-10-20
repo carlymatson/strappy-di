@@ -2,78 +2,98 @@
 # Project Description
 
 Strappy is a light, flexible, and pythonic dependency injection framework.  
-Inspired by libraries like `Punq`, Strappy combines an easy-to-understand API with robust and convenient features
-and accurate, specific type annotations.
+Inspired by libraries like `Punq`, Strappy combines an intuitive API with robust and convenient features
+and accurate type annotations.
 
-# Installation
-
-Strappy is available on the cheese shop.
-```
-pip install strappy-di
-```
-(#) Documentation is available on Read the docs.
 
 # Quick Start
 
-Strappy allows you to provide and recursively resolve dependencies for callables by registering Providers within the context of a given Container.
-Providers return a result either by calling a factory, which may be a type or any callable that returns that type, or by returning a provided instance.
+Strappy makes it easy to bootstrap your application by allowing you to recursively resolve 
+dependencies for any callable, usually a class or function.
+```
+import strappy
+
+class Client:
+    ...
+
+class Service:
+    def __init__(self, client: Client) -> None:
+        self.client = client
+
+service = strappy.base.resolve(Service)
+```
+Strappy works by using _strategies_ to look up _providers_ within the context of a given _container_.
+Providers fulfill your dependencies either by returning a registered instance or by 
+calling a factory, which can itself recursivley resolve dependencies from the container's context.
+
+# Using Containers
+
+Strappy provides a global base container `strappy.base` that can be used to register and resolve shared needs.
+This base container can also be extended to define
+more narrow contexts for different use cases, such as
+one for your deployed service and another for unit tests.
+```
+import strappy
+
+deployment_container = strappy.base.extend()
+test_container = strappy.base.extend()
+```
+Any changes to the base container will be reflected in its 
+children unless explicitly overridden, but changes
+to child containers do not affect their parents or siblings.
+
+# Registering Providers
+
+A `Provider` can fulfill a dependency either by returning 
+an instance or by returning the result of calling
+a factory.
 ```
 from strappy import Provider
 
+class Foo:
+    ...
+
+# Provider with an instance
+Provider(instance=Foo(...))
+
+# Provider with a factory class
+Provider(Foo)
+
+# Provider with a factory function
+Provider(lambda: Foo(...))
+```
+Providers that use factories can also be configured with 
+arguments and a scope that allows you to cache and reuse the result.
+
+The return type of a provider determines how it is looked
+up in a container's registry. This type can usually be 
+inferred from its factory or instance, but in some cases
+it can be useful to set this explicitly. 
+This value can be used by type checkers to ensure that the 
+provider's factory or instance is of the expected type.
+```
+from typing import Protocol
+
+class FooLike(Protocol):
+    ...
+
+provider_1 = Provider[FooLike](...)
+provider_2 = Provider(..., provides=FooLike)
+```
+
+These providers can be added to a container and will then be available in its registry.
+```
+container.add(provider_1)
+
+container.registry # {FooLike: [provider_1]}
+```
+Strappy also exposes a decorator syntax for registering factories.
+```
+@container.register
 class Service:
     ...
 
+@container.register
 def get_service() -> Service:
-    return Service()
-
-service_provider_1 = Provider(Service)
-service_provider_2 = Provider(get_service)
-service_provider_3 = Provider(instance=Service())
-```
-These providers may then be added to a container using `container.add`:
-```
-from strappy import Container, Provider
-
-class Service:
     ...
-
-container = Container()
-container.add(Provider(Service))
-```
-Providers can also be simultaneously created and added by using a decorator syntax:
-```
-from strappy import Container
-
-container = Container()
-
-@container.inject
-class Service:
-    ...
-
-@container.inject
-def get_service() -> Service:
-    ...
-
-@container.inject(...)
-class get_service_2() -> Service:
-    ...
-```
-If provided, the 'type' of a provider will be determined by:
-- The `provides` argument
-- The parametrized type of `Provider[...]`
-
-Otherwise, the provider's type will be determined using the following:
-- Class factory: the class type
-- Callable Factory: the return type of that callable
-- Instance: the type of that instance
-
-We can now resolve any registered dependencies from the container:
-```
-service = container.resolve(Service)
-```
-If a provider factory takes arguments, we can take these from arguemnts provided at resolution or registration or resolved from the container using the types of parameters in the function signature.
-(See ... for more)
-```
-container.resolve(Service)
-container.resolve(Service, args=(...), wargs={...}, mode=...)
 ```
