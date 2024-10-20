@@ -85,7 +85,7 @@ class Provider(Generic[T]):
     def _build(
         self,
         resolver: ContainerLike,
-        args: tuple = (),
+        args: tuple = (),  # noqa: ARG002
         kwargs: dict[str, Any] | None = None,
     ) -> T:
         if self.instance is not None:

@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 from strappy import Container, Mode, Provider, Scope
+from strappy.errors import RegistrationConflictError
 
 
 def test_add_provider_once():
@@ -20,7 +21,7 @@ def test_add_second_provider_same_key():
     mock_provider.provides = str
     container.add(mock_provider)
 
-    with pytest.raises(Exception):
+    with pytest.raises(RegistrationConflictError):
         container.add(mock_provider)
 
 
@@ -53,9 +54,9 @@ def test_bare_register_calls_add_provider():
     @container.register
     class Service: ...
 
-    container.add.assert_called_once()  # type: ignore
-    assert len(container.add.call_args.args) == 1  # type: ignore
-    provider = container.add.call_args.args[0]  # type: ignore
+    container.add.assert_called_once()
+    assert len(container.add.call_args.args) == 1
+    provider = container.add.call_args.args[0]
     assert isinstance(provider, Provider)
     assert provider.factory is Service
     assert provider.provides is Service
@@ -81,13 +82,13 @@ def test_registering_with_args_calls_add_provider_with_args():
         def get_foo(self) -> str:
             return "foo"
 
-    container.add.assert_called_once()  # type: ignore
-    assert len(container.add.call_args.args) == 1  # type: ignore
-    provider = container.add.call_args.args[0]  # type: ignore
+    container.add.assert_called_once()
+    assert len(container.add.call_args.args) == 1
+    provider = container.add.call_args.args[0]
     assert isinstance(provider, Provider)
     assert provider.factory is Service
     assert provider.provides is ServiceLike
     assert provider.registration_kwargs == {"a": 1}
     assert provider.scope is Scope.SINGLETON
     assert provider.instance is None
-    assert container.add.call_args.kwargs["mode"] == Mode.OVERWRITE  # type: ignore
+    assert container.add.call_args.kwargs["mode"] == Mode.OVERWRITE

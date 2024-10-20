@@ -30,6 +30,7 @@ _EMPTY = _Empty()
 
 Strategy: TypeAlias = Callable[[inspect.Parameter, ContainerLike], Provider | None]
 
+
 class Container:
     """Simple dependency injection container."""
 
@@ -126,7 +127,7 @@ class Container:
         mode: Mode = Mode.RAISE_ON_CONFLICT,
     ) -> FactoryDecorator[T]: ...
 
-    def register(  # noqa: PLR0913
+    def register(
         self,
         factory: Callable[..., T] | type[T] | None = None,
         *,
@@ -161,7 +162,7 @@ class Container:
         param: inspect.Parameter,
         args: tuple = (),  # noqa: ARG002
         kwargs: dict[str, Any] | None = None,
-    ) -> Any:  # noqa: ANN401
+    ) -> Any:
         providers = [
             result
             for strategy in self.strategies

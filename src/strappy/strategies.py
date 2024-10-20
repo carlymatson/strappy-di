@@ -2,7 +2,7 @@
 
 import inspect
 from collections.abc import Collection, Hashable
-from typing import Annotated, Any, Protocol, get_args, get_origin
+from typing import Annotated, get_args, get_origin
 
 from strappy import type_utils
 from strappy.protocols import ContainerLike
@@ -83,24 +83,12 @@ def search_registry_for_collection_inner_type(
     return Provider(factory=collection_factory, provides=annotation)
 
 
-def _is_concrete_class(hint: Any) -> bool:  # noqa: ANN401
-    if hint == inspect._empty:  # noqa: SLF001
-        return False
-    try:
-        is_class = inspect.isclass(hint)
-        is_abstract = inspect.isabstract(hint)
-        is_protocol = issubclass(hint, Protocol)
-    except TypeError:
-        return False
-    return is_class and not (is_abstract or is_protocol)
-
-
 def use_type_as_factory(
     param: inspect.Parameter,
     container: ContainerLike,  # noqa: ARG001
 ) -> Provider | None:
     """Get a provider which uses the type as a factory if valid."""
     hint = param.annotation
-    if _is_concrete_class(hint):
+    if type_utils.is_concrete_class(hint):
         return Provider(param.annotation)
     return None

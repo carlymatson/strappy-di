@@ -2,14 +2,23 @@
 # Project Description
 
 Strappy is a light, flexible, and pythonic dependency injection framework.  
-Inspired by libraries like `Punq`, Strappy combines an intuitive API with robust and convenient features
-and accurate type annotations.
+It combines an intuitive API with robust and convenient features:
+- No external dependencies
+- Integrates with FastAPI out of the box
+- Helpful and accurate type annotations
+- Default functionality that covers the vast majority of use cases, and easy customization for the rest
 
+# Installing
+
+Strappy is available on [PyPI](https://pypi.org/project/strappy-di/0.1.0/).
+```
+python -m pip install strappy-di
+```
 
 # Quick Start
 
-Strappy makes it easy to bootstrap your application by allowing you to recursively resolve 
-dependencies for any callable, usually a class or function.
+Strappy makes it easy to bootstrap your application by 
+recursively resolving dependencies for any callable.
 ```
 import strappy
 
@@ -30,8 +39,8 @@ calling a factory, which can itself recursivley resolve dependencies from the co
 
 Strappy provides a global base container `strappy.base` that can be used to register and resolve shared needs.
 This base container can also be extended to define
-more narrow contexts for different use cases, such as
-one for your deployed service and another for unit tests.
+different contexts for different use cases, such as
+having one for your deployed service and another for unit tests.
 ```
 import strappy
 
@@ -95,5 +104,18 @@ class Service:
 
 @container.register
 def get_service() -> Service:
+    ...
+```
+
+# Customizing Strategies
+
+Strappy gives you full control over your container's strategies and their precedence.
+It comes with a number of pre-defined strategies for common use cases, 
+such as using a FastAPI-style dependency, looking 
+up a registered provider by type, and using a type annotation as a factory class. 
+But it is also easy to use custom strategies by passing in any callable
+that accepts a parameter and a container and optionally returns a provider.
+```
+def my_custom_strategy(param: inspect.Parameter, container: ContainerLike) -> Provider | None:
     ...
 ```
