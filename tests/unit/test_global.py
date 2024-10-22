@@ -1,4 +1,3 @@
-import pytest
 import strappy
 
 
@@ -36,7 +35,8 @@ def test_overwriting_registrations_in_extension_does_not_affect_base():
     container = strappy.base.extend()
     my_instance = Service()
     container.add(
-        strappy.Provider[Service](instance=my_instance), mode=strappy.Mode.OVERWRITE
+        strappy.Provider[Service](instance=my_instance),
+        mode=strappy.RegistrationMode.OVERWRITE,
     )
 
     base_service = strappy.base.resolve(Service)

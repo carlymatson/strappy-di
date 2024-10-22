@@ -5,7 +5,6 @@ from collections.abc import Callable, Hashable, Sequence
 from enum import Enum
 from typing import Any, Self, TypeAlias, TypeVar, overload
 
-from strappy import strategies as st
 from strappy.errors import RegistrationConflictError, ResolutionError
 from strappy.protocols import ContainerLike, FactoryDecorator
 from strappy.provider import Provider, Scope
@@ -15,8 +14,8 @@ Factory: TypeAlias = type[T] | Callable[..., T]
 FactoryT = TypeVar("FactoryT", bound=Factory)
 
 
-class Mode(Enum):
-    """Mode for resolving multiple registrations for the same provides."""
+class RegistrationMode(Enum):
+    """Mode for registering multiple providers for the same type."""
 
     RAISE_ON_CONFLICT = "RAISE_ON_CONFLICT"
     OVERWRITE = "OVERWRITE"
@@ -36,19 +35,29 @@ class Container:
 
     def __init__(
         self,
-        strategies: Sequence[Strategy] = (
-            st.use_depends_meta_if_present,
-            st.search_registry_for_type,
-            st.search_registry_for_collection_inner_type,
-            st.use_type_as_factory,
-        ),
+        strategies: Sequence[Strategy] | None = None,
         parent: Self | None = None,
     ) -> None:
         """Create a new  container for dependency injection."""
-        self.strategies = strategies or []
-        self.parent = parent
-
+        self._strategies = strategies
+        self._parent = parent
         self._registry: dict[Hashable, list[Provider]] = {}
+
+    @property
+    def strategies(self) -> Sequence[Strategy]:
+        """Get the combined registry from this container and its ancestors."""
+        if self._strategies is not None:
+            return self._strategies
+        if self._parent is not None:
+            return self._parent.strategies
+        return ()
+
+    @property
+    def registry(self) -> dict[Hashable, list[Provider]]:
+        """Get the combined registry from this container and its ancestors."""
+        if self._parent:
+            return {**self._parent.registry, **self._registry}
+        return {**self._registry}
 
     def unset(self, key: Hashable) -> None:
         """Clear all registrations for the given type."""
@@ -61,12 +70,15 @@ class Container:
     def _add_one(
         self,
         provider: Provider,
-        mode: Mode = Mode.RAISE_ON_CONFLICT,
+        mode: RegistrationMode = RegistrationMode.RAISE_ON_CONFLICT,
     ) -> None:
         """Add a provider to the container registry."""
-        if mode == Mode.RAISE_ON_CONFLICT and provider.provides in self._registry:
+        if (
+            mode == RegistrationMode.RAISE_ON_CONFLICT
+            and provider.provides in self._registry
+        ):
             raise RegistrationConflictError(str(provider.provides))
-        if mode == Mode.OVERWRITE:
+        if mode == RegistrationMode.OVERWRITE:
             self.clear(provider.provides)
         self._registry.setdefault(provider.provides, [])
         self._registry[provider.provides].append(provider)
@@ -74,10 +86,10 @@ class Container:
     def add(
         self,
         *providers: Provider,
-        mode: Mode = Mode.RAISE_ON_CONFLICT,
+        mode: RegistrationMode = RegistrationMode.RAISE_ON_CONFLICT,
     ) -> None:
         """Add a provider to the container registry."""
-        if mode == Mode.RAISE_ON_CONFLICT:
+        if mode == RegistrationMode.RAISE_ON_CONFLICT:
             seen = set(self._registry)
             for provider in providers:
                 if provider.provides in seen:
@@ -87,13 +99,6 @@ class Container:
         for provider in providers:
             self._add_one(provider, mode=mode)
 
-    @property
-    def registry(self) -> dict[Hashable, list[Provider]]:
-        """Get the combined registry from this container and its ancestors."""
-        if self.parent:
-            return {**self.parent.registry, **self._registry}
-        return {**self._registry}
-
     @overload
     def register(
         self,
@@ -102,7 +107,7 @@ class Container:
         provides: None = None,
         kwargs: None = None,
         scope: None = None,
-        mode: Mode = Mode.RAISE_ON_CONFLICT,
+        mode: RegistrationMode = RegistrationMode.RAISE_ON_CONFLICT,
     ) -> type[T]: ...
 
     @overload
@@ -113,7 +118,7 @@ class Container:
         provides: None = None,
         kwargs: None = None,
         scope: None = None,
-        mode: Mode = Mode.RAISE_ON_CONFLICT,
+        mode: RegistrationMode = RegistrationMode.RAISE_ON_CONFLICT,
     ) -> Callable[..., T]: ...
 
     @overload
@@ -124,7 +129,7 @@ class Container:
         provides: Callable[..., T] | None = None,
         kwargs: dict[str, Any] | None = None,
         scope: Scope | None = None,
-        mode: Mode = Mode.RAISE_ON_CONFLICT,
+        mode: RegistrationMode = RegistrationMode.RAISE_ON_CONFLICT,
     ) -> FactoryDecorator[T]: ...
 
     def register(
@@ -132,9 +137,10 @@ class Container:
         factory: Callable[..., T] | type[T] | None = None,
         *,
         provides: Callable[..., T] | None = None,
+        args: tuple = (),
         kwargs: dict[str, Any] | None = None,
         scope: Scope | None = None,
-        mode: Mode = Mode.RAISE_ON_CONFLICT,
+        mode: RegistrationMode = RegistrationMode.RAISE_ON_CONFLICT,
     ) -> type[T] | Callable[..., T] | FactoryDecorator[T]:
         """Inject a factory into this container."""
         # Case 1: Decorator without arguments, i.e. @register
@@ -147,6 +153,7 @@ class Container:
             self.add(
                 Provider(
                     factory=factory_,
+                    args=args,
                     kwargs=kwargs,
                     scope=scope,
                     provides=provides,
@@ -160,7 +167,7 @@ class Container:
     def _resolve_param(
         self,
         param: inspect.Parameter,
-        args: tuple = (),  # noqa: ARG002
+        args: tuple = (),
         kwargs: dict[str, Any] | None = None,
     ) -> Any:
         providers = [
@@ -169,7 +176,7 @@ class Container:
             if (result := strategy(param, self)) is not None
         ]
         if providers:
-            return providers[0].get(self, kwargs=kwargs)
+            return providers[0].get(self, args=args, kwargs=kwargs)
         return _EMPTY
 
     def resolve(
@@ -196,6 +203,7 @@ class Container:
         self,
         function: Callable[..., T],
         *,
+        args: tuple = (),
         kwargs: dict[str, Any] | None = None,
     ) -> T:
         """Call a callable within the container's context."""
@@ -216,6 +224,6 @@ class Container:
         )
         return function(*positional_args, **build_kwargs)
 
-    def extend(self) -> Self:
+    def extend(self, strategies: Sequence[Strategy] | None = None) -> Self:
         """Return a new container extending the current context."""
-        return type(self)(strategies=self.strategies, parent=self)
+        return type(self)(parent=self, strategies=strategies)
