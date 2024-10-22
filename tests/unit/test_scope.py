@@ -1,8 +1,9 @@
-from strappy import Container, Scope
+import strappy
+from strappy import Scope
 
 
 def test_transient_returns_new_result():
-    container = Container()
+    container = strappy.base.extend()
 
     @container.register(scope=Scope.TRANSIENT)
     class Service: ...
@@ -14,7 +15,7 @@ def test_transient_returns_new_result():
 
 
 def test_singleton_returns_same_result():
-    container = Container()
+    container = strappy.base.extend()
 
     @container.register(scope=Scope.SINGLETON)
     class Service: ...

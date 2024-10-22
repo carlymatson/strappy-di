@@ -18,6 +18,7 @@ class ContainerLike(Protocol):
         self,
         function: Callable[..., T],
         *,
+        args: tuple = (),
         kwargs: dict[str, Any] | None = None,
     ) -> T:
         """Call a function or class by recursively resolving dependencies."""

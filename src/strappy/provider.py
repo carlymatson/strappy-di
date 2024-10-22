@@ -34,6 +34,7 @@ class Provider(Generic[T]):
         factory: Callable[..., T] | None = None,
         *,
         instance: T | None = None,
+        args: tuple = (),
         kwargs: dict[str, Any] | None = None,
         scope: Scope | None = None,
         provides: type[T] | Callable[..., T] | None = None,
@@ -41,6 +42,7 @@ class Provider(Generic[T]):
         """Instantiate a new provider."""
         self.factory = factory
         self.instance = instance
+        self.registration_args = args
         self.registration_kwargs = kwargs
         self.scope = scope or Scope.TRANSIENT
         self.provides = provides or self._get_type()
@@ -60,7 +62,7 @@ class Provider(Generic[T]):
 
         return Provider
 
-    def _get_type(self) -> Any:  # noqa: ANN401
+    def _get_type(self) -> Any:
         if getattr(self, "provides", None):
             return self.provides
         if self._type_arg:
@@ -85,18 +87,23 @@ class Provider(Generic[T]):
     def _build(
         self,
         resolver: ContainerLike,
-        args: tuple = (),  # noqa: ARG002
+        args: tuple = (),
         kwargs: dict[str, Any] | None = None,
     ) -> T:
         if self.instance is not None:
             return self.instance
         if self.factory:
+            build_args = args or self.registration_args # FIXME resolve
             build_kwargs = {
                 **(self.registration_kwargs or {}),
                 **(kwargs or {}),
             }
             try:
-                result = resolver.call(self.factory, kwargs=build_kwargs)
+                result = resolver.call(
+                    self.factory,
+                    args=build_args,
+                    kwargs=build_kwargs,
+                )
             except TypeError as exc:
                 raise ResolutionError from exc
             return result

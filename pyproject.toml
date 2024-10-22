@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "strappy-di"
-version = "0.1.0"
+version = "0.2.0"
 description = "Light, flexible, and pythonic dependency injection framework"
 readme = "README.md"
 authors = [{ name = "Caroline Matson", email = "carlymatson21@gmail.com" }]

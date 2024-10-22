@@ -1,28 +1,33 @@
 from typing import Annotated
 
-from strappy import Container, Mode, Provider
+import pytest
+import strappy
+from strappy import Container, Provider, RegistrationMode
 
 
-def test_resolving_respects_type_annotations():
-    container = Container()
+@pytest.fixture(name="container")
+def fixture_container() -> Container:
+    return strappy.base.extend()
+
+
+def test_resolving_respects_type_annotations(container: Container):
     container.add(
         Provider[str](instance="apple"),
         Provider[Annotated[str, "b"]](instance="banana"),
     )
     apple = container.resolve(str)
 
-    banana = container.resolve(Annotated[str, "b"])  # type: ignore
+    banana = container.resolve(Annotated[str, "b"]) # pyright: ignore[reportArgumentType]
 
     assert apple == "apple"
     assert banana == "banana"
 
 
-def test_can_resolve_subdependencies():
+def test_can_resolve_subdependencies(container: Container):
     class Service:
         def __init__(self, value: str) -> None:
             self.value = value
 
-    container = Container()
     container.add(
         Provider[str](instance="bob"),
         Provider(Service),
@@ -34,12 +39,11 @@ def test_can_resolve_subdependencies():
     assert service.value == "bob"
 
 
-def test_resolves_subdependency_using_annotated_type_hint():
+def test_resolves_subdependency_using_annotated_type_hint(container: Container):
     class Service:
         def __init__(self, value: Annotated[str, "a"]) -> None:
             self.value = value
 
-    container = Container()
     container.add(
         Provider[Annotated[str, "a"]](instance="apple"),
         Provider(Service),
@@ -51,9 +55,9 @@ def test_resolves_subdependency_using_annotated_type_hint():
     assert service.value == "apple"
 
 
-def test_resolves_subdependency_annotated_type_hint_falls_back_to_unwrapped():
-    container = Container()
-
+def test_resolves_subdependency_annotated_type_hint_falls_back_to_unwrapped(
+    container: Container,
+):
     @container.register
     class Service:
         def __init__(self, value: Annotated[str, "a"]) -> None:
@@ -67,15 +71,13 @@ def test_resolves_subdependency_annotated_type_hint_falls_back_to_unwrapped():
     assert service.value == "some string"
 
 
-def test_resolve_list_of_registered_service():
-    container = Container()
-
+def test_resolve_list_of_registered_service(container: Container):
     class Service: ...
 
     container.add(
         Provider(Service),
         Provider(Service),
-        mode=Mode.APPEND,
+        mode=RegistrationMode.APPEND,
     )
 
     services = container.resolve(list[Service])
@@ -84,15 +86,13 @@ def test_resolve_list_of_registered_service():
     assert all(isinstance(service, Service) for service in services)
 
 
-def test_resolve_list_of_registered_subclasses():
-    container = Container()
-
+def test_resolve_list_of_registered_subclasses(container: Container):
     class BaseService: ...
 
-    @container.register(provides=BaseService, mode=Mode.APPEND)
+    @container.register(provides=BaseService, mode=RegistrationMode.APPEND)
     class FooService(BaseService): ...
 
-    @container.register(provides=BaseService, mode=Mode.APPEND)
+    @container.register(provides=BaseService, mode=RegistrationMode.APPEND)
     class BarService(BaseService): ...
 
     services = container.resolve(list[BaseService])
@@ -102,14 +102,12 @@ def test_resolve_list_of_registered_subclasses():
     assert isinstance(services[1], BarService)
 
 
-def test_resolve_set_of_registered_service():
-    container = Container()
-
+def test_resolve_set_of_registered_service(container: Container):
     class Service: ...
 
-    container.add(Provider(Service), mode=Mode.APPEND)
+    container.add(Provider(Service), mode=RegistrationMode.APPEND)
     instance = Service()
-    container.add(Provider[Service](instance=instance), mode=Mode.APPEND)
+    container.add(Provider[Service](instance=instance), mode=RegistrationMode.APPEND)
 
     services = container.resolve(set[Service])
 
@@ -119,9 +117,7 @@ def test_resolve_set_of_registered_service():
     assert instance in services
 
 
-def test_resolve_collection_subdependency():
-    container = Container()
-
+def test_resolve_collection_subdependency(container: Container):
     class Handler: ...
 
     @container.register
@@ -129,8 +125,8 @@ def test_resolve_collection_subdependency():
         def __init__(self, handlers: list[Handler]) -> None:
             self.handlers = handlers
 
-    container.add(Provider(Handler), mode=Mode.APPEND)
-    container.add(Provider(Handler), mode=Mode.APPEND)
+    container.add(Provider(Handler), mode=RegistrationMode.APPEND)
+    container.add(Provider(Handler), mode=RegistrationMode.APPEND)
 
     service = container.resolve(Service)
 
