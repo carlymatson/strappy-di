@@ -33,7 +33,7 @@ def unwrap_if_optional(hint: Any) -> Any:
     if len(inner_types) == 2:  # noqa: PLR2004
         return inner_types[0]
     non_null_types = [t for t in inner_types if t is not type(None)]
-    return Union[*non_null_types]  # type: ignore  # noqa: PGH003
+    return Union[non_null_types]  # type: ignore  # noqa: PGH003, UP007
 
 
 def unwrap_if_annotated(hint: Any) -> Any:
