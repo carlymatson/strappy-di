@@ -3,7 +3,9 @@
 import inspect
 from collections.abc import Callable, Hashable, Mapping, Sequence
 from enum import Enum
-from typing import Any, Self, TypeAlias, overload
+from typing import Any, TypeAlias, overload
+
+from typing_extensions import Self
 
 from strappy import strategies as st
 from strappy.errors import RegistrationConflictError, ResolutionError
