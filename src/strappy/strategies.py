@@ -5,8 +5,8 @@ from collections.abc import Collection, Hashable
 from typing import Annotated, get_args, get_origin
 
 from strappy import type_utils
-from strappy.protocols import ContainerLike
 from strappy.provider import Provider
+from strappy.types import ContainerLike
 
 
 def use_depends_meta_if_present(

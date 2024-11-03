@@ -1,9 +1,11 @@
-"""Shared protocol."""
+"""Shared generic types and protocols."""
 
 from collections.abc import Callable, Hashable
-from typing import Any, Generic, Protocol, TypeVar, overload
+from typing import Any, Protocol, TypeAlias, TypeVar
 
 T = TypeVar("T")
+Factory: TypeAlias = type[T] | Callable[..., T]
+FactoryT = TypeVar("FactoryT", bound=type | Callable)
 
 
 class ContainerLike(Protocol):
@@ -22,16 +24,3 @@ class ContainerLike(Protocol):
     ) -> T:
         """Call a function or class by recursively resolving dependencies."""
         ...
-
-
-class FactoryDecorator(Protocol, Generic[T]):
-    """Protocol description of a decorator."""
-
-    @overload
-    def __call__(self, factory_: type[T]) -> type[T]: ...
-    @overload
-    def __call__(self, factory_: Callable[..., T]) -> Callable[..., T]: ...
-    def __call__(  # noqa: D102
-        self,
-        factory_: type[T] | Callable[..., T],
-    ) -> type[T] | Callable[..., T]: ...

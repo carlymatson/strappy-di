@@ -2,7 +2,8 @@ from typing import Protocol
 from unittest.mock import Mock
 
 import pytest
-from strappy import Container, Mode, Provider, Scope
+
+from strappy import Container, Provider, RegisterMode, Scope
 from strappy.errors import RegistrationConflictError
 
 
@@ -29,9 +30,9 @@ def test_add_second_provider_with_append_mode():
     container = Container()
     mock_provider = Mock(provides=str)
     second_mock_provider = Mock(provides=str)
-    container.add(mock_provider)
 
-    container.add(second_mock_provider, mode=Mode.APPEND)
+    container.add(mock_provider)
+    container.add(second_mock_provider, mode=RegisterMode.APPEND)
 
     assert container.registry == {str: [mock_provider, second_mock_provider]}
 
@@ -40,9 +41,9 @@ def test_add_second_provider_with_overwrite_mode():
     container = Container()
     mock_provider = Mock(provides=str)
     second_mock_provider = Mock(provides=str)
-    container.add(mock_provider)
 
-    container.add(second_mock_provider, mode=Mode.OVERWRITE)
+    container.add(mock_provider)
+    container.add(second_mock_provider, mode=RegisterMode.OVERWRITE)
 
     assert container.registry == {str: [second_mock_provider]}
 
@@ -76,7 +77,7 @@ def test_registering_with_args_calls_add_provider_with_args():
         provides=ServiceLike,
         kwargs={"a": 1},
         scope=Scope.SINGLETON,
-        mode=Mode.OVERWRITE,
+        mode=RegisterMode.OVERWRITE,
     )
     class Service:
         def get_foo(self) -> str:
@@ -91,4 +92,4 @@ def test_registering_with_args_calls_add_provider_with_args():
     assert provider.registration_kwargs == {"a": 1}
     assert provider.scope is Scope.SINGLETON
     assert provider.instance is None
-    assert container.add.call_args.kwargs["mode"] == Mode.OVERWRITE
+    assert container.add.call_args.kwargs["mode"] == RegisterMode.OVERWRITE

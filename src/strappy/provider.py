@@ -1,9 +1,9 @@
 """Dependency providers."""
 
 import inspect
-from collections.abc import Callable, Hashable
+from collections.abc import Hashable
 from enum import Enum
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic
 
 from strappy.errors import (
     MultipleImplementationsError,
@@ -12,9 +12,7 @@ from strappy.errors import (
     ResolutionError,
     TransientInstanceError,
 )
-from strappy.protocols import ContainerLike
-
-T = TypeVar("T")
+from strappy.types import ContainerLike, Factory, T
 
 
 class Scope(Enum):
@@ -31,12 +29,12 @@ class Provider(Generic[T]):
 
     def __init__(
         self,
-        factory: Callable[..., T] | None = None,
+        factory: Factory[T] | None = None,
         *,
         instance: T | None = None,
         kwargs: dict[str, Any] | None = None,
         scope: Scope | None = None,
-        provides: type[T] | Callable[..., T] | None = None,
+        provides: type[T] | None = None,
     ) -> None:
         """Instantiate a new provider."""
         self.factory = factory
@@ -60,7 +58,7 @@ class Provider(Generic[T]):
 
         return Provider
 
-    def _get_type(self) -> Any:  # noqa: ANN401
+    def _get_type(self) -> Any:
         if getattr(self, "provides", None):
             return self.provides
         if self._type_arg:
