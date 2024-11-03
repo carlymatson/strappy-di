@@ -2,7 +2,7 @@ name: Check Strappy DI library source
 run-name: ${{ github.actor }} is testing Strappy DI
 on: [push]
 jobs:
-  Run-Tests:
+  Lint-Check-Test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -21,6 +21,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
+      - name: Lint and check formatting with ruff
+        run: |
+          python -m pip install ruff
+          python -m ruff check src/strappy
+          python -m ruff format --diff src/strappy
+      - name: Type-check with pyright
+        run: |
+          python -m pip install pyright
+          python -m pyright src/strappy
       - name: Test with pytest
         run: |
           python -m pip install pytest pytest-cov

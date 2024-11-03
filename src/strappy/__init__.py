@@ -1,10 +1,8 @@
 """Simple lightweight framework for dependency injection."""
+# ruff: noqa: F401
 
-from .container import Container as Container
-from .container import RegisterMode as RegisterMode
-from .errors import RegistrationConflictError as RegistrationConflictError
-from .errors import ResolutionError as ResolutionError
-from .provider import Provider as Provider
-from .provider import Scope as Scope
+from .container import Container, RegisterMode
+from .errors import RegistrationConflictError, ResolutionError
+from .provider import Provider, Scope
 
 base = Container()
