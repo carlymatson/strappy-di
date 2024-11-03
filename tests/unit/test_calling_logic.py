@@ -1,5 +1,8 @@
+from unittest.mock import Mock
+
 import pytest
 from pydantic import BaseModel
+
 from strappy import Container
 from strappy.provider import Provider
 
@@ -16,6 +19,14 @@ def test_can_resolve_with_kwargs():
 
     assert isinstance(service, Service)
     assert service.value == 2
+
+
+def test_call_with_kwargs():
+    container = Container()
+    mock = Mock()
+    container.call(mock, kwargs={"a": 1, "b": "two"})
+
+    mock.assert_called_once_with(a=1, b="two")
 
 
 def test_resolution_kwargs_take_precedence_over_registration():
@@ -72,7 +83,6 @@ def test_default_fields_are_not_passed_explicitly():
     assert person.model_fields_set == {"name"}
 
 
-# TODO Could use better clarity on this one
 def test_can_call_function_with_container_context():
     container = Container()
 

@@ -3,19 +3,18 @@
 import inspect
 from collections.abc import Callable, Hashable, Sequence
 from enum import Enum
-from typing import Any, Self, TypeAlias, TypeVar, overload
+from typing import Any, Self, TypeAlias, overload
 
 from strappy import strategies as st
 from strappy.errors import RegistrationConflictError, ResolutionError
-from strappy.protocols import ContainerLike, FactoryDecorator
 from strappy.provider import Provider, Scope
+from strappy.types import ContainerLike, FactoryT, T
 
-T = TypeVar("T")
-Factory: TypeAlias = type[T] | Callable[..., T]
-FactoryT = TypeVar("FactoryT", bound=Factory)
+Decorator: TypeAlias = Callable[[FactoryT], FactoryT]
+Strategy: TypeAlias = Callable[[inspect.Parameter, ContainerLike], Provider | None]
 
 
-class Mode(Enum):
+class RegisterMode(Enum):
     """Mode for resolving multiple registrations for the same provides."""
 
     RAISE_ON_CONFLICT = "RAISE_ON_CONFLICT"
@@ -27,8 +26,6 @@ class _Empty: ...
 
 
 _EMPTY = _Empty()
-
-Strategy: TypeAlias = Callable[[inspect.Parameter, ContainerLike], Provider | None]
 
 
 class Container:
@@ -61,12 +58,15 @@ class Container:
     def _add_one(
         self,
         provider: Provider,
-        mode: Mode = Mode.RAISE_ON_CONFLICT,
+        mode: RegisterMode = RegisterMode.RAISE_ON_CONFLICT,
     ) -> None:
         """Add a provider to the container registry."""
-        if mode == Mode.RAISE_ON_CONFLICT and provider.provides in self._registry:
+        if (
+            mode == RegisterMode.RAISE_ON_CONFLICT
+            and provider.provides in self._registry
+        ):
             raise RegistrationConflictError(str(provider.provides))
-        if mode == Mode.OVERWRITE:
+        if mode == RegisterMode.OVERWRITE:
             self.clear(provider.provides)
         self._registry.setdefault(provider.provides, [])
         self._registry[provider.provides].append(provider)
@@ -74,10 +74,10 @@ class Container:
     def add(
         self,
         *providers: Provider,
-        mode: Mode = Mode.RAISE_ON_CONFLICT,
+        mode: RegisterMode = RegisterMode.RAISE_ON_CONFLICT,
     ) -> None:
         """Add a provider to the container registry."""
-        if mode == Mode.RAISE_ON_CONFLICT:
+        if mode == RegisterMode.RAISE_ON_CONFLICT:
             seen = set(self._registry)
             for provider in providers:
                 if provider.provides in seen:
@@ -97,45 +97,34 @@ class Container:
     @overload
     def register(
         self,
-        factory: type[T],
+        factory: FactoryT,
         *,
         provides: None = None,
         kwargs: None = None,
         scope: None = None,
-        mode: Mode = Mode.RAISE_ON_CONFLICT,
-    ) -> type[T]: ...
-
-    @overload
-    def register(
-        self,
-        factory: Callable[..., T],
-        *,
-        provides: None = None,
-        kwargs: None = None,
-        scope: None = None,
-        mode: Mode = Mode.RAISE_ON_CONFLICT,
-    ) -> Callable[..., T]: ...
+        mode: RegisterMode = RegisterMode.RAISE_ON_CONFLICT,
+    ) -> FactoryT: ...
 
     @overload
     def register(
         self,
         factory: None = None,
         *,
-        provides: Callable[..., T] | None = None,
+        provides: type | None = None,
         kwargs: dict[str, Any] | None = None,
         scope: Scope | None = None,
-        mode: Mode = Mode.RAISE_ON_CONFLICT,
-    ) -> FactoryDecorator[T]: ...
+        mode: RegisterMode = RegisterMode.RAISE_ON_CONFLICT,
+    ) -> Decorator: ...
 
     def register(
         self,
-        factory: Callable[..., T] | type[T] | None = None,
+        factory: FactoryT | None = None,
         *,
-        provides: Callable[..., T] | None = None,
+        provides: type | None = None,
         kwargs: dict[str, Any] | None = None,
         scope: Scope | None = None,
-        mode: Mode = Mode.RAISE_ON_CONFLICT,
-    ) -> type[T] | Callable[..., T] | FactoryDecorator[T]:
+        mode: RegisterMode = RegisterMode.RAISE_ON_CONFLICT,
+    ) -> FactoryT | Decorator:
         """Inject a factory into this container."""
         # Case 1: Decorator without arguments, i.e. @register
         if factory is not None:
@@ -146,7 +135,7 @@ class Container:
         def decorator(factory_: FactoryT) -> FactoryT:
             self.add(
                 Provider(
-                    factory=factory_,
+                    factory=factory_,  # type: ignore[reportArgumentType]
                     kwargs=kwargs,
                     scope=scope,
                     provides=provides,

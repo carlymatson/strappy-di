@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from strappy import Container, Mode, Provider
+from strappy import Container, Provider, RegisterMode
 
 
 def test_resolving_respects_type_annotations():
@@ -11,7 +11,7 @@ def test_resolving_respects_type_annotations():
     )
     apple = container.resolve(str)
 
-    banana = container.resolve(Annotated[str, "b"])  # type: ignore
+    banana = container.resolve(Annotated[str, "b"])  # type: ignore[reportArgumentType]
 
     assert apple == "apple"
     assert banana == "banana"
@@ -75,7 +75,7 @@ def test_resolve_list_of_registered_service():
     container.add(
         Provider(Service),
         Provider(Service),
-        mode=Mode.APPEND,
+        mode=RegisterMode.APPEND,
     )
 
     services = container.resolve(list[Service])
@@ -89,10 +89,10 @@ def test_resolve_list_of_registered_subclasses():
 
     class BaseService: ...
 
-    @container.register(provides=BaseService, mode=Mode.APPEND)
+    @container.register(provides=BaseService, mode=RegisterMode.APPEND)
     class FooService(BaseService): ...
 
-    @container.register(provides=BaseService, mode=Mode.APPEND)
+    @container.register(provides=BaseService, mode=RegisterMode.APPEND)
     class BarService(BaseService): ...
 
     services = container.resolve(list[BaseService])
@@ -107,9 +107,9 @@ def test_resolve_set_of_registered_service():
 
     class Service: ...
 
-    container.add(Provider(Service), mode=Mode.APPEND)
+    container.add(Provider(Service), mode=RegisterMode.APPEND)
     instance = Service()
-    container.add(Provider[Service](instance=instance), mode=Mode.APPEND)
+    container.add(Provider[Service](instance=instance), mode=RegisterMode.APPEND)
 
     services = container.resolve(set[Service])
 
@@ -129,8 +129,8 @@ def test_resolve_collection_subdependency():
         def __init__(self, handlers: list[Handler]) -> None:
             self.handlers = handlers
 
-    container.add(Provider(Handler), mode=Mode.APPEND)
-    container.add(Provider(Handler), mode=Mode.APPEND)
+    container.add(Provider(Handler), mode=RegisterMode.APPEND)
+    container.add(Provider(Handler), mode=RegisterMode.APPEND)
 
     service = container.resolve(Service)
 
