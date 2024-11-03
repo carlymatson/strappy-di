@@ -1,0 +1,14 @@
+LICENSE
+README.md
+pyproject.toml
+src/strappy/__init__.py
+src/strappy/container.py
+src/strappy/errors.py
+src/strappy/provider.py
+src/strappy/strategies.py
+src/strappy/type_utils.py
+src/strappy/types.py
+src/strappy_di.egg-info/PKG-INFO
+src/strappy_di.egg-info/SOURCES.txt
+src/strappy_di.egg-info/dependency_links.txt
+src/strappy_di.egg-info/top_level.txt

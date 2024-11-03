@@ -1,7 +1,7 @@
 """Container for dependency injection."""
 
 import inspect
-from collections.abc import Callable, Hashable, Sequence
+from collections.abc import Callable, Hashable, Mapping, Sequence
 from enum import Enum
 from typing import Any, Self, TypeAlias, overload
 
@@ -181,16 +181,25 @@ class Container:
             return result
         raise ResolutionError
 
+    @staticmethod
+    def _get_params(f: Callable | type) -> Mapping[str, inspect.Parameter]:
+        try:
+            sig = inspect.signature(f)
+        except ValueError:
+            sig = inspect.signature(f.__init__)
+        return sig.parameters
+
     def call(
         self,
-        function: Callable[..., T],
+        function: Callable[..., T] | type[T],
         *,
         kwargs: dict[str, Any] | None = None,
     ) -> T:
         """Call a callable within the container's context."""
         provided_kwargs = kwargs or {}
-        skip = {"self", "cls"}.union(provided_kwargs)
-        params = inspect.signature(function).parameters
+        bound_args = {"self", "cls"}
+        skip = bound_args.union(provided_kwargs)
+        params = self._get_params(function)
         resolved_kwargs = {
             key: resolved
             for key, param in params.items()
@@ -202,6 +211,7 @@ class Container:
             build_kwargs.pop(name)
             for name, param in params.items()
             if param.kind == inspect._ParameterKind.POSITIONAL_ONLY  # noqa: SLF001
+            and name not in bound_args
         )
         return function(*positional_args, **build_kwargs)
 

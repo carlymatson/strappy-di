@@ -88,6 +88,8 @@ def use_type_as_factory(
     container: ContainerLike,  # noqa: ARG001
 ) -> Provider | None:
     """Get a provider which uses the type as a factory if valid."""
+    if param.default is not inspect._empty:  # noqa: SLF001
+        return None
     hint = param.annotation
     if type_utils.is_concrete_class(hint):
         return Provider(param.annotation)

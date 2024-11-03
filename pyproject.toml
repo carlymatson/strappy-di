@@ -22,7 +22,10 @@ requires-python = ">=3.11"
 homepage = "https://github.com/carlymatson/strappy-di"
 
 [tool.uv]
-dev-dependencies = ["pytest>=8.3.2"]
+dev-dependencies = [
+    "fastapi>=0.115.4",
+    "pytest>=8.3.2",
+]
 
 [tool.ruff.lint]
 select = ["ALL"]
