@@ -1,6 +1,7 @@
 name: Check Strappy DI library source
 run-name: ${{ github.actor }} is testing Strappy DI
 on: [push]
+jobs:
   Run-Tests:
     runs-on: ubuntu-latest
     strategy:
